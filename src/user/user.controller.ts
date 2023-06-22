@@ -35,9 +35,10 @@ export class UserController {
   async getUsers(
     @Req() req: AuthRequest,
   ): Promise<GetUserResponseDto[] | GetUserResponseDto> {
-    const users = await this.userService.getUsers(req.user);
-    const response = users.map((user) => new GetUserResponseDto(user));
-    return req.user.role === Role.User ? response[0] : response;
+    const res = await this.userService.getUsers(req.user);
+    if (Array.isArray(res))
+      return res.map((sub) => new GetUserResponseDto(sub));
+    return new GetUserResponseDto(res);
   }
 
   @Post('change-boss')

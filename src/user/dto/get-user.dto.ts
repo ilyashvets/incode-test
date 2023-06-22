@@ -6,6 +6,9 @@ export class GetUserResponseDto {
     this.id = user.id;
     this.email = user.email;
     this.role = user.role;
+    this.subordinates = user.subordinates.map(
+      (sub) => new GetUserResponseDto(sub),
+    );
   }
 
   id: number;
@@ -13,4 +16,6 @@ export class GetUserResponseDto {
   email: string;
 
   role: Role;
+
+  subordinates: GetUserResponseDto[];
 }

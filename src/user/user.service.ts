@@ -59,7 +59,7 @@ export class UserService {
     });
   }
 
-  async getUsers(initiator: TokenPayload): Promise<UserEntity[]> {
+  async getUsers(initiator: TokenPayload): Promise<UserEntity[] | UserEntity> {
     if (initiator.role === Role.Admin) {
       return this.userRepo.find({
         where: { role: Not(Role.Admin) },
@@ -69,15 +69,29 @@ export class UserService {
       });
     }
     if (initiator.role === Role.Boss) {
-      const [user, subordinates] = await Promise.all([
-        this.userRepo.findOne({ where: { id: initiator.id } }),
-        this.userRepo.find({ where: { boss: { id: initiator.id } } }),
-      ]);
-      return [user, ...subordinates];
+      const boss = await this.userRepo.findOne({
+        where: { id: initiator.id },
+        relations: ['subordinates'],
+      });
+      return this.getSubordinates(boss);
     }
-    return this.userRepo.find({
+    return this.userRepo.findOne({
       where: { id: initiator.id },
     });
+  }
+
+  private async getSubordinates(user: UserEntity): Promise<UserEntity> {
+    if (!user.subordinates.length) return user;
+    const userSubordinates = await this.userRepo.find({
+      where: { boss: { id: user.id } },
+      relations: ['subordinates'],
+    });
+
+    const subordinates = await Promise.all(
+      userSubordinates.map((sub) => this.getSubordinates(sub)),
+    );
+
+    return Object.assign(user, { subordinates });
   }
 
   async changeBoss(
